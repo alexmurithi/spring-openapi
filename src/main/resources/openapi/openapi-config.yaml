@@ -1,0 +1,9 @@
+files:
+  build.gradle.mustache:
+    templateType: SupportingFiles
+additionalProperties:
+  useBeanValidation: true
+  performBeanValidation: true
+  useResponseEntity: false
+  annotationLibrary: none
+  interfaceOnly: true

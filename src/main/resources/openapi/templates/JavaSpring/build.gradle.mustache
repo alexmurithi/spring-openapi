@@ -1,0 +1,56 @@
+plugins {
+id 'java-library'
+}
+
+group = "{{ groupId }}"
+version = "{{ artifactVersion }}"
+
+java {
+withSourcesJar()
+withJavadocJar()
+{{# useSpringBoot3 }}
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+{{/ useSpringBoot3 }}
+{{^ useSpringBoot3 }}
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+{{/ useSpringBoot3 }}
+}
+
+tasks.withType(JavaCompile) {
+options.encoding = 'UTF-8'
+}
+
+javadoc {
+options.encoding = 'UTF-8'
+options.addBooleanOption('Xdoclint:none', true)
+}
+
+repositories {
+mavenCentral()
+}
+
+dependencies {
+{{# useSpringBoot3 }}
+    compileOnly platform("org.springframework.boot:spring-boot-dependencies:3.0.6")
+    compileOnly "jakarta.validation:jakarta.validation-api:3.0.0"
+    compileOnly "jakarta.annotation:jakarta.annotation-api:2.1.1"
+{{/ useSpringBoot3 }}
+{{^ useSpringBoot3 }}
+    compileOnly platform("org.springframework.boot:spring-boot-dependencies:2.7.11")
+    compileOnly "javax.validation:validation-api:2.0.1.Final"
+    compileOnly "javax.annotation:javax.annotation-api:1.3.2"
+{{/ useSpringBoot3 }}
+compileOnly "org.springframework.boot:spring-boot-starter-web"
+compileOnly "io.swagger.core.v3:swagger-annotations:2.2.8"
+compileOnly "com.fasterxml.jackson.core:jackson-databind:2.13.4"
+compileOnly "com.google.code.findbugs:findbugs-annotations:3.0.1"
+compileOnly "org.springframework.cloud:spring-cloud-openfeign-core:3.1.5"
+compileOnly "org.springframework.data:spring-data-commons"
+}
+
+test {
+useJUnitPlatform()
+testLogging.events 'passed', 'skipped', 'failed'
+}

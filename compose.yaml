@@ -1,0 +1,13 @@
+services:
+  db:
+    image: mysql:8.3.0
+    container_name: openapi-mysql
+    environment:
+      MYSQL_DATABASE: 'openapi-db'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'Pass@word'
+      MYSQL_ROOT_PASSWORD: 'Pass@word'
+    ports:
+      - '3306:3306'
+    volumes:
+      - ./build/mysql-data:/var/lib/mysql

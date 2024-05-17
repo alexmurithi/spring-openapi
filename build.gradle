@@ -1,0 +1,171 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+
+
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.2.5'
+	id 'io.spring.dependency-management' version '1.1.4'
+	id 'org.openapi.generator' version '7.5.0' apply false
+	id "com.diffplug.spotless" version "6.25.0" apply false
+}
+
+apply plugin: 'org.openapi.generator'
+apply plugin: "com.diffplug.spotless"
+
+group = 'com.alexdev'
+
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+java{
+	withSourcesJar()
+	withJavadocJar()
+	sourceCompatibility = JavaVersion.VERSION_17
+	targetCompatibility = JavaVersion.VERSION_17
+
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
+	runtimeOnly 'com.mysql:mysql-connector-j'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
+
+	//lombok
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	//security
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	testImplementation 'org.springframework.security:spring-security-test'
+
+	//mapstruct
+	implementation 'org.mapstruct:mapstruct:1.5.5.Final'
+	annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+
+	compileOnly 'javax.validation:validation-api:2.0.1.Final'
+	compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
+	compileOnly 'com.fasterxml.jackson.core:jackson-databind:2.17.0'
+	compileOnly 'io.swagger.core.v3:swagger-annotations:2.2.21'
+	compileOnly 'org.openapitools:jackson-databind-nullable:0.2.6'
+	compileOnly 'javax.servlet:javax.servlet-api:4.0.1'
+}
+
+
+openApiGenerate {
+	generatorName = "spring"
+	library = "spring-boot"
+	modelNameSuffix = ""
+	id = "${project.name}" + "-api"
+	groupId = project.group
+	inputSpec = "${projectDir}/src/main/resources/openapi/openapi.yaml"
+	outputDir = "${buildDir}/generated/api"
+	modelPackage = "${group}.${project.name}.dto"
+	configOptions = [
+			apiPackage: "${group}.${project.name}.api",
+			serverPackage: "${group}.${project.name}.server",
+			interfaceOnly: "true",
+			useBeanValidation: "true",
+	]
+}
+
+
+
+tasks.register('openApiGeneratorApi', GenerateTask){
+	apiPackage = openApiGenerate.configOptions.get().get('apiPackage')
+	id = openApiGenerate.id
+	modelNameSuffix = openApiGenerate.modelNameSuffix
+	generatorName = openApiGenerate.generatorName
+	inputSpec = openApiGenerate.inputSpec
+	modelPackage = openApiGenerate.modelPackage
+	library = openApiGenerate.library
+	groupId = openApiGenerate.groupId
+	outputDir = openApiGenerate.outputDir
+	configOptions.set([
+			interfaceOnly: openApiGenerate.configOptions.get().get('interfaceOnly'),
+			useBeanValidation: openApiGenerate.configOptions.get().get('useBeanValidation')
+	])
+	additionalProperties = [
+			useResponseEntity: false,
+			skipDefaultInterface: true,
+			jackson: true,
+			performBeanValidation: false,
+			additionalModelTypeAnnotations: "@lombok.Builder(toBuilder = true) @lombok.NoArgsConstructor @lombok.AllArgsConstructor @lombok.Data",
+			generateConstructorWithRequiredArgs: false
+	]
+}
+
+tasks.register('openApiGeneratorServer', GenerateTask){
+	apiPackage = openApiGenerate.configOptions.get().get('serverPackage')
+	id = openApiGenerate.id
+	modelNameSuffix = openApiGenerate.modelNameSuffix
+	generatorName = openApiGenerate.generatorName
+	inputSpec = openApiGenerate.inputSpec
+	modelPackage = openApiGenerate.modelPackage
+	library = openApiGenerate.library
+	groupId = openApiGenerate.groupId
+	outputDir = openApiGenerate.outputDir
+	configOptions.set([
+			interfaceOnly: openApiGenerate.configOptions.get().get('interfaceOnly'),
+			useBeanValidation: openApiGenerate.configOptions.get().get('useBeanValidation')
+	])
+	additionalProperties = [
+			useResponseEntity: true,
+			skipDefaultInterface: true,
+			jackson: true,
+			performBeanValidation: false,
+			additionalModelTypeAnnotations: "@lombok.Builder(toBuilder = true) @lombok.NoArgsConstructor @lombok.AllArgsConstructor @lombok.Data",
+			generateConstructorWithRequiredArgs: false
+	]
+}
+
+openApiValidate {
+	inputSpec = openApiGenerate.inputSpec
+}
+
+sourceSets {
+	main{
+		java {
+			srcDir "$buildDir/generated/api/src/main/java"
+		}
+	}
+}
+
+//Code Formatting Using Spotless & Google Java Format
+spotless {
+	java {
+		importOrder()
+		removeUnusedImports()
+		googleJavaFormat("1.17.0")
+				.aosp()
+				.reflowLongStrings()
+	}
+}
+
+tasks.register("buildApi", GradleBuild) {
+	dependsOn('openApiGeneratorApi','openApiGeneratorServer','spotlessApply')
+	group = 'build'
+	description = "Builds the API"
+}
+
+tasks.named('spotlessJava').configure {
+	dependsOn 'openApiGeneratorApi', 'openApiGeneratorServer'
+}
+
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
